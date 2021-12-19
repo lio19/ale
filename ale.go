@@ -15,14 +15,24 @@ type ALE struct {
 	wordInfos []WordInfo
 	wordInfoLock sync.Mutex
 	translator   *translator
+
+	speakerSampleRate beep.SampleRate
 }
 
 func NewALE() *ALE{
-	return &ALE{
+	ale := &ALE{
 		wordInfos:    make([]WordInfo, 0),
 		wordInfoLock: sync.Mutex{},
 		translator:   NewTranslator(),
+		speakerSampleRate: beep.SampleRate(16000),
 	}
+
+	err := speaker.Init(ale.speakerSampleRate, ale.speakerSampleRate.N(time.Second/10))
+	if err != nil {
+		panic(err.Error())
+	}
+
+	return ale
 }
 
 func (a *ALE)Start() {
@@ -88,18 +98,18 @@ func (a *ALE) autoLearn() {
 
 func (a *ALE) playWordInfo(info WordInfo) error {
 	time.Sleep(1 * time.Second)
-	if err := play(info.srcMp3Path); err != nil {
+	if err := play(info.srcMp3Path, a.speakerSampleRate); err != nil {
 		return err
 	}
 	time.Sleep(1 * time.Second)
-	if err := play(info.dstMp3Path); err != nil {
+	if err := play(info.dstMp3Path, a.speakerSampleRate); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func play(str string) error {
+func play(str string, sr beep.SampleRate) error {
 	f, err := os.Open(str)
 	if err != nil {
 		return err
@@ -112,16 +122,15 @@ func play(str string) error {
 	}
 	defer streamer.Close()
 
-	err = speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/10))
-	if err != nil {
-		return err
-	}
-	defer speaker.Close()
 
 	done := make(chan bool)
-	speaker.Play(beep.Seq(streamer, beep.Callback(func() {
+
+	reStream := beep.Resample(4, format.SampleRate, sr, streamer)
+
+	speaker.Play(beep.Seq(reStream, beep.Callback(func() {
 		done <- true
 	})))
+
 
 	<-done
 	logger.Info("play one mp3", str)
