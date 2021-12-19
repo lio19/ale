@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/speaker"
+	"io"
 	"os"
 	"sync"
 	"time"
@@ -107,6 +109,25 @@ func (a *ALE) playWordInfo(info WordInfo) error {
 	}
 
 	return nil
+}
+
+func playWordByLetter(word string, sr beep.SampleRate) error {
+
+	seqSlice := make([]beep.Streamer, 0)
+	fdSlice := make([]io.ReadCloser, 0)
+	for _, v := range word {
+		f, err := os.Open(fmt.Sprintf("%c.ch.mp3", v))
+		fdSlice = append(fdSlice, f)
+
+		streamer, format, err := mp3.Decode(f)
+		reStream := beep.Resample(4, format.SampleRate, sr, streamer)
+
+		seqSlice = append(seqSlice, reStream)
+	}
+
+	speaker.Play(beep.Seq(seqSlice..., beep.Callback(func() {
+
+	})))
 }
 
 func play(str string, sr beep.SampleRate) error {
