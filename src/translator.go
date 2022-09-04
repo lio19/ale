@@ -17,11 +17,11 @@ import (
 
 type translator struct {
 	wordInfoChan chan WordInfo
-	errChan chan error
+	errChan      chan error
 
 	salt uint64
 
-	lastSendTime int64
+	lastSendTime     int64
 	lastSendTimeLock sync.Mutex
 }
 
@@ -50,14 +50,14 @@ type result struct {
 	ErrorCode   string   `json:"errorCode"`
 	Query       string   `json:"query"`
 	Translation []string `json:"translation"`
-	TSpeakUrl string `json:"tSpeakUrl"`
-	SpeakUrl  string `json:"speakUrl"`
+	TSpeakUrl   string   `json:"tSpeakUrl"`
+	SpeakUrl    string   `json:"speakUrl"`
 }
 
 func NewTranslator() *translator {
 	return &translator{
 		wordInfoChan: make(chan WordInfo, 10),
-		errChan: make(chan error, 2),
+		errChan:      make(chan error, 2),
 	}
 }
 
@@ -67,7 +67,7 @@ func (t *translator) Translate(word string) {
 		//控制在qps = 1
 		for {
 			t.lastSendTimeLock.Lock()
-			if time.Now().UnixNano() - t.lastSendTime < 1000000 {
+			if time.Now().UnixNano()-t.lastSendTime < 1000000 {
 				t.lastSendTimeLock.Unlock()
 				time.Sleep(1 * time.Second)
 			} else {
@@ -80,8 +80,8 @@ func (t *translator) Translate(word string) {
 		//请求
 		t.salt++
 		curTime := strconv.FormatInt(time.Now().Unix(), 10)
-		saltStr :=strconv.FormatUint(t.salt, 10)
-		sig := createSignal(word,saltStr , curTime)
+		saltStr := strconv.FormatUint(t.salt, 10)
+		sig := createSignal(word, saltStr, curTime)
 
 		url := fmt.Sprintf("https://openapi.youdao.com/api?q=%s&from=zh-CHS&to=EN&appKey=%s&salt=%s&sign=%s&signType=v3&curtime=%s&ext=mp3&voice=0&strict=true", word, conf.getValue("appid"), saltStr, sig, curTime)
 
@@ -112,13 +112,13 @@ func (t *translator) Translate(word string) {
 		}
 
 		var wi WordInfo
-		wi.srcMp3Path, err = downloadMp3(r.SpeakUrl, conf.getValue("mp3TempDir"), word + ".en.mp3")
+		wi.srcMp3Path, err = downloadMp3(r.SpeakUrl, conf.getValue("mp3TempDir"), word+".en.mp3")
 		if err != nil {
 			t.errChan <- err
 			return
 		}
 
-		wi.dstMp3Path, err = downloadMp3(r.TSpeakUrl, conf.getValue("mp3TempDir"), word + ".ch.mp3")
+		wi.dstMp3Path, err = downloadMp3(r.TSpeakUrl, conf.getValue("mp3TempDir"), word+".ch.mp3")
 		if err != nil {
 			t.errChan <- err
 			return
@@ -128,8 +128,7 @@ func (t *translator) Translate(word string) {
 	}()
 }
 
-
-func createSignal(word, salt, curTime string) string{
+func createSignal(word, salt, curTime string) string {
 	var input string
 	if len(word) <= 20 {
 		input = word
@@ -137,11 +136,10 @@ func createSignal(word, salt, curTime string) string{
 		input = fmt.Sprintf("%s%d%s", word[:10], len(word), word[10:])
 	}
 
-
-	return fmt.Sprintf("%x", sha256.Sum256([]byte(fmt.Sprint(conf.getValue("appid"), input, salt, curTime,conf.getValue("miyao")))))
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(fmt.Sprint(conf.getValue("appid"), input, salt, curTime, conf.getValue("miyao")))))
 }
 
-func downloadMp3(uri, dirPath, filename string) (string,error) {
+func downloadMp3(uri, dirPath, filename string) (string, error) {
 
 	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
 		if err = os.MkdirAll(dirPath, 0777); err != nil {
@@ -150,7 +148,7 @@ func downloadMp3(uri, dirPath, filename string) (string,error) {
 	}
 
 	//判断是非存在相同的文件
-	fileTempPath := fmt.Sprintf("%s%c%s",dirPath,filepath.Separator,filename)
+	fileTempPath := fmt.Sprintf("%s%c%s", dirPath, filepath.Separator, filename)
 	_, err := os.Stat(fileTempPath)
 	if os.IsExist(err) {
 		return fileTempPath, nil
@@ -166,7 +164,7 @@ func downloadMp3(uri, dirPath, filename string) (string,error) {
 	fileTempFd, err := os.Create(fileTempPath)
 	defer fileTempFd.Close()
 	if err != nil {
-		return "",err
+		return "", err
 	}
 
 	c, err := io.Copy(fileTempFd, resp.Body)

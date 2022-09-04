@@ -39,22 +39,7 @@ func NewALE() *ALE{
 
 func (a *ALE)Start() {
 
-	//读入所有的单词
-	wordsTxtPath := conf.getValue("wordstxt")
-
-	wordsTxtFd, err := os.Open(wordsTxtPath)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	sc := bufio.NewScanner(wordsTxtFd)
-
-	for sc.Scan() {
-		oneWord := sc.Text()
-		if oneWord != "" {
-			a.translator.Translate(oneWord)
-		}
-	}
+	//1.
 
 	//开启
 	a.autoLearn()
