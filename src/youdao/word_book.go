@@ -23,7 +23,6 @@ func NewWordBook() *WordBook {
 }
 
 func (wb *WordBook) Get() (*RespWordBookData, error) {
-	//
 	wbUrl := "https://dict.youdao.com/wordbook/webapi/v2/word/list?limit=48&offset=0&sort=time&lanTo=&lanFrom="
 
 	req, err := http.NewRequest(http.MethodGet, wbUrl, nil)
@@ -53,6 +52,11 @@ func (wb *WordBook) Get() (*RespWordBookData, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode/100 != 2 {
+		return nil, errors.New("http request return is not 200")
+	}
 
 	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -62,7 +66,7 @@ func (wb *WordBook) Get() (*RespWordBookData, error) {
 	var respWB RespWordBook
 	err = json.Unmarshal(respBytes, &respWB)
 	if err != nil {
-		return nil, err
+		return nil, ErrUnmarshal
 	}
 
 	if respWB.Code != 0 {
@@ -71,3 +75,5 @@ func (wb *WordBook) Get() (*RespWordBookData, error) {
 
 	return &respWB.Data, nil
 }
+
+var ErrUnmarshal = errors.New("http body Unmarshal body fail")

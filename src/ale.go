@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/mp3"

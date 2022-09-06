@@ -36,7 +36,7 @@ func (wb *WordBook) GetOneWord(q string) (*RespWord, error) {
 	salt := strconv.FormatInt(now.UnixMilli(), 10)
 	sign := wb.signal(q, curTime, salt)
 
-	resp, err := http.PostForm("", url.Values{
+	resp, err := http.PostForm("https://openapi.youdao.com/api", url.Values{
 		"q":        {q},
 		"from":     {"EN"},
 		"to":       {"zh-CHS"},
