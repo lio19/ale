@@ -15,12 +15,10 @@ import (
 func (wb *WordBook) signal(q, curTime, salt string) string {
 
 	var input string
-	if len(q) <= 10 {
-		input = fmt.Sprintf("%s%d", q, len(q))
-	} else if len(q) <= 20 {
-		input = fmt.Sprintf("%s%d%s", q[:10], len(q), q[10:])
-	} else {
+	if len(q) <= 20 {
 		input = q
+	} else {
+		input = fmt.Sprintf("%s%d%s", q[:10], len(q), q[10:])
 	}
 
 	signStr := wb.appKey + input + salt + curTime + wb.appSec
