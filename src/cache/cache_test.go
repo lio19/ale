@@ -18,8 +18,7 @@ func TestCache_GetWordList(t *testing.T) {
 
 	conf.MockConf(map[string]string{"cache": "test_cache_dir"})
 
-	c, err := New()
-	a.Nil(err)
+	c := New()
 	a.NotNil(c)
 
 	c.wordCacheFile("one")
@@ -50,14 +49,13 @@ func TestCache_GetOneWordInfo(t *testing.T) {
 
 	defer os.RemoveAll(testDir)
 
-	c, err := New()
-	a.Nil(err)
+	c := New()
 	a.NotNil(c)
-	wi, err := c.GetOneWordInfo("test")
+	wi, err := c.GetOneWordDetail("test")
 	a.Nil(err)
 	a.Nil(wi)
 
-	wc := WordCache{
+	wc := InputWordCache{
 		EngMp3Url: "http://downsc.chinaz.net/Files/DownLoad/sound1/201906/11582.mp3",
 		ChMp3Url:  "http://downsc.chinaz.net/Files/DownLoad/sound1/201906/11582.mp3",
 		WordEng:   "test",
@@ -65,10 +63,10 @@ func TestCache_GetOneWordInfo(t *testing.T) {
 	}
 	err = c.UpdateWordInfo(&wc)
 	a.Nil(err)
-	wi, err = c.GetOneWordInfo("one")
+	wi, err = c.GetOneWordDetail("one")
 	a.Nil(wi)
 	a.Nil(err)
-	wi, err = c.GetOneWordInfo("test")
+	wi, err = c.GetOneWordDetail("test")
 	a.NotNil(wi)
 	a.Nil(err)
 	wcf := c.wordCacheFile("test")

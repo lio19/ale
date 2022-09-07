@@ -4,6 +4,7 @@ import (
 	"autoLearnEnglish/src/conf"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 )
@@ -31,7 +32,7 @@ func (wb *WordBook) Get() (*RespWordBookData, error) {
 	}
 
 	req.Header.Set("Accept", "application/json, text/plain, */*")
-	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
+	//req.Header.Set("Accept-Encoding", "gzip, deflate, br")
 	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9")
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Connection", "keep-alive")
@@ -66,7 +67,7 @@ func (wb *WordBook) Get() (*RespWordBookData, error) {
 	var respWB RespWordBook
 	err = json.Unmarshal(respBytes, &respWB)
 	if err != nil {
-		return nil, ErrUnmarshal
+		return nil, fmt.Errorf("body ErrUnmarshal = %s err = %s", string(respBytes), err.Error())
 	}
 
 	if respWB.Code != 0 {

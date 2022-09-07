@@ -17,7 +17,7 @@ import (
 //2. one word cache (mp3 + english to chinese)
 //|
 //|
-//|----WordList
+//|----WordListCache
 //|
 //|---Words----word1-----ch.mp3
 //          |         |
@@ -56,29 +56,29 @@ type Cache struct {
 	local string
 }
 
-func New() (*Cache, error) {
+func New() *Cache {
 	//todo: 是否需要检查是否存在?
 	local := conf.GetValue("cache")
 	return &Cache{
 		local: local,
-	}, nil
+	}
 }
 
 func (c *Cache) wordListCacheFile() string {
 	return fmt.Sprintf("%s%cWordList", c.local, filepath.Separator)
 }
 
-func (c *Cache) wordCacheFile(wordStr string) *WordFilePath {
-	var wfp WordFilePath
+func (c *Cache) wordCacheFile(wordStr string) *innerWordFilePath {
+	var wfp innerWordFilePath
 	wfp.DirPath = fmt.Sprintf("%s%cWords%c%s", c.local, filepath.Separator, filepath.Separator, wordStr)
-	wfp.EngMp3Path = fmt.Sprintf("%s%cen.mp4", wfp.DirPath, filepath.Separator)
-	wfp.ChMp3Path = fmt.Sprintf("%s%cch.mp4", wfp.DirPath, filepath.Separator)
+	wfp.EngMp3Path = fmt.Sprintf("%s%cen.mp3", wfp.DirPath, filepath.Separator)
+	wfp.ChMp3Path = fmt.Sprintf("%s%cch.mp3", wfp.DirPath, filepath.Separator)
 	wfp.InfoPath = fmt.Sprintf("%s%cinfo", wfp.DirPath, filepath.Separator)
 	return &wfp
 }
 
 // GetWordList cache do not exit return nil, nil
-func (c *Cache) GetWordList() (*WordList, error) {
+func (c *Cache) GetWordList() (*WordListCache, error) {
 
 	bs, err := os.ReadFile(c.wordListCacheFile())
 
@@ -90,7 +90,7 @@ func (c *Cache) GetWordList() (*WordList, error) {
 		return nil, errors.New("read word list cache fail, msg = " + err.Error())
 	}
 
-	var wl WordList
+	var wl WordListCache
 	err = json.Unmarshal(bs, &wl)
 	if err != nil {
 		return nil, errors.New("cache content error, msg = " + err.Error())
@@ -99,7 +99,7 @@ func (c *Cache) GetWordList() (*WordList, error) {
 	return &wl, nil
 }
 
-// UpdateWordList wl is nil, delete WordList
+// UpdateWordList wl is nil, delete WordListCache
 func (c *Cache) UpdateWordList(words []string) error {
 
 	wlp := c.wordListCacheFile()
@@ -115,7 +115,13 @@ func (c *Cache) UpdateWordList(words []string) error {
 		return nil
 	}
 
-	wl := WordList{
+	if !fileIsExit(c.local) {
+		if err := os.MkdirAll(c.local, os.ModePerm); err != nil {
+			panic("create cache root dir fail, path =  " + c.local + "   err = " + err.Error())
+		}
+	}
+
+	wl := WordListCache{
 		AddTime: time.Now().Unix(),
 		Words:   words,
 	}
@@ -138,12 +144,12 @@ func (c *Cache) UpdateWordList(words []string) error {
 	return nil
 }
 
-func (c *Cache) UpdateWordInfo(wc *WordCache) error {
+func (c *Cache) UpdateWordInfo(wc *InputWordCache) error {
 	if wc == nil {
 		return nil
 	}
 
-	if wc.WordCh == "" || wc.WordEng == "" || wc.EngMp3Url == "" || wc.ChMp3Url == "" {
+	if wc.WordEng == "" || wc.EngMp3Url == "" || wc.ChMp3Url == "" {
 		return fmt.Errorf("word info is error, %+v", *wc)
 	}
 
@@ -165,7 +171,7 @@ func (c *Cache) UpdateWordInfo(wc *WordCache) error {
 		return errors.New("cache http to path fail, msg = " + err.Error())
 	}
 
-	wic := WordInfoCache{
+	wic := innerWordCache{
 		WordEng: wc.WordEng,
 		WordCh:  wc.WordCh,
 		AddTime: time.Now().Unix(),
@@ -189,7 +195,7 @@ func (c *Cache) UpdateWordInfo(wc *WordCache) error {
 	return nil
 }
 
-func (c *Cache) GetOneWordInfo(word string) (*Word, error) {
+func (c *Cache) GetOneWordDetail(word string) (*WordDetailCache, error) {
 
 	wp := c.wordCacheFile(word)
 	//check is all file exit
@@ -209,13 +215,13 @@ func (c *Cache) GetOneWordInfo(word string) (*Word, error) {
 		return nil, errors.New("get cache info fail, msg = " + err.Error())
 	}
 
-	var wi WordInfoCache
+	var wi innerWordCache
 	if err = json.Unmarshal(bs, &wi); err != nil {
 		_ = os.Remove(wp.DirPath)
 		return nil, errors.New("get cache info fail, msg = " + err.Error())
 	}
 
-	var w Word
+	var w WordDetailCache
 	w.AddTime = wi.AddTime
 	w.English = wi.WordEng
 	w.Chinese = wi.WordCh
